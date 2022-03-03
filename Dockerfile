@@ -13,9 +13,13 @@ RUN docker-php-ext-install pdo mbstring exif pcntl bcmath gd opcache
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
-COPY . /var/www/html
+
+COPY --chown=www-data:www-data . /var/www/html
+
 COPY vhost.conf /etc/apache2/sites-available/000-default.conf
 
-RUN chown -R www-data:www-data /var/www/html \
-    && a2enmod rewrite
+RUN composer install
 
+RUN a2enmod rewrite
+
+USER www-data:www-data
