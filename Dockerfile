@@ -18,8 +18,7 @@ COPY --chown=www-data:www-data . /var/www/html
 
 COPY vhost.conf /etc/apache2/sites-available/000-default.conf
 
-RUN composer install
+RUN composer install --no-scripts --no-interaction
 
 RUN a2enmod rewrite
 
-#USER www-data:www-data
