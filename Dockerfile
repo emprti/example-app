@@ -16,6 +16,8 @@ WORKDIR /var/www/html
 
 COPY . /var/www/html
 
+RUN cp .env.example .env && php artisan key:generate
+
 COPY vhost.conf /etc/apache2/sites-available/000-default.conf
 
 RUN composer install --no-scripts --no-interaction
