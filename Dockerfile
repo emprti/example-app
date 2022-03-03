@@ -22,4 +22,4 @@ RUN composer install
 
 RUN a2enmod rewrite
 
-USER www-data:www-data
+#USER www-data:www-data
