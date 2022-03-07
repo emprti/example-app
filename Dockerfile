@@ -1,23 +1,46 @@
-FROM php:apache
+FROM tangramor/nginx-php8-fpm
 
-# Install system dependencies and clean cache
-RUN apt-get update -y && \
-    apt-get install -y openssl zip unzip git libpng-dev libonig-dev libxml2-dev && \
-    rm -rf /var/lib/apt/lists/*
+# copy source code
+COPY . /var/www/html
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo mbstring exif pcntl bcmath gd opcache
+# If there is a conf folder under /var/www/html, the start.sh will
+# copy conf/nginx.conf to /etc/nginx/nginx.conf
+# copy conf/nginx-site.conf to /etc/nginx/conf.d/default.conf
+# copy conf/nginx-site-ssl.conf to /etc/nginx/conf.d/default-ssl.conf
 
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# copy ssl cert files
+# COPY conf/ssl /etc/nginx/ssl
 
-WORKDIR /var/www/html
+# start.sh will set desired timezone with $TZ
+# ENV TZ Asia/Shanghai
 
-COPY . .
+# China php composer mirror: https://mirrors.cloud.tencent.com/composer/
+# ENV COMPOSERMIRROR="https://mirrors.cloud.tencent.com/composer/"
+# China npm mirror: https://registry.npm.taobao.org
+# ENV NPMMIRROR="https://registry.npm.taobao.org"
 
-RUN composer install --no-scripts --no-interaction
+# start.sh will replace default web root from /var/www/html to $WEBROOT
+ENV WEBROOT /var/www/html/public
 
-COPY vhost.conf /etc/apache2/sites-available/000-default.conf
+# start.sh will use redis as session store with docker container name $PHP_REDIS_SESSION_HOST
+# ENV PHP_REDIS_SESSION_HOST redis
 
-RUN chown -R www-data:www-data /var/www/html && \
-    a2enmod rewrite
+# start.sh will create laravel storage folder structure if $CREATE_LARAVEL_STORAGE = 1
+# ENV CREATE_LARAVEL_STORAGE "1"
+
+# download required node/php packages, 
+# some node modules need gcc/g++ to build
+RUN apk add --no-cache --virtual .build-deps gcc g++ libc-dev make \
+    && cd /var/www/html \
+    # install node modules
+    # && npm install \
+    # install php composer packages
+    && composer install --no-ansi --no-dev --no-interaction --no-progress --no-scripts --optimize-autoloader \
+    # clean
+    && apk del .build-deps \
+    # build js/css
+    # && npm run dev \
+    # set .env
+    # && cp .env.test .env \
+    # change /var/www/html user/group
+    && chown -Rf nginx.nginx /var/www/html
