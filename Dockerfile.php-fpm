@@ -1,5 +1,11 @@
 FROM php:8.1-fpm
 
+ARG UID=1000
+ARG GID=1000
+
+ENV UID=${UID}
+ENV GID=${GID}
+
 # Install system dependencies and clean cache; install PHP extensions
 RUN apt-get update -y && \
     apt-get install -y openssl zip unzip git libpng-dev libonig-dev libxml2-dev && \
@@ -11,9 +17,18 @@ RUN apt-get update -y && \
 # Get latest Composer
 #COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+RUN addgroup --gid ${GID} --system laravel \
+    && adduser --ingroup laravel --system --disabled-password --shell /bin/sh --uid ${UID} laravel \
+    && sed -i "s/user = www-data/user = laravel/g" /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i "s/group = www-data/group = laravel/g" /usr/local/etc/php-fpm.d/www.conf
+
 WORKDIR /var/www/html
 
 COPY . /var/www/html
+
+RUN cp .env.example .env \
+    && php artisan key:generate \
+    && chown -R laravel:laravel /var/www/html
 
 VOLUME [ "/var/www/html" ]
 
