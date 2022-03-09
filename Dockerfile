@@ -106,6 +106,8 @@ COPY . /var/www/html
 RUN composer install --no-ansi --no-interaction --no-progress --no-scripts --optimize-autoloader \
     && npm install \
     # && npm run prod \
+    && cp .env.example .env \
+    && php artisan key:generate \
     && chown -Rf nginx:nginx /var/www/html
 
 EXPOSE 443 80
